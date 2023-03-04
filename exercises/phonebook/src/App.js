@@ -5,13 +5,25 @@ import DisplayPersons from './components/DisplayPerson'
 import phoneService from './services/phone'
 
 
+const Notifications = ({message, state}) => {
+  if(message === null)
+  {
+    return null
+  }
+  return(
+    <div className = {state === 'success' ? 'notification' : 'error'}>
+      {message}
+    </div>
+  )
+}
 
 const App = () => {
   const [persons, setPersons] = useState([])
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [nameSearch, setNameSearch] = useState('')
-
+  const [message, setMessage] = useState(null)
+  const [state, setState] = useState('success')
 
 const hook = () => {
   phoneService
@@ -42,9 +54,7 @@ const handleFormSubmit = (event) => {
           setPersons(persons.map(person => person.id !== nameExists.id ? person: returnedNote))
         })
         setNewName('')
-        setNewNumber('')
-
-      
+        setNewNumber('')   
     }
   }
   else{
@@ -57,21 +67,36 @@ const handleFormSubmit = (event) => {
       .create(newPersonObject)
       .then(returnedNote => {
         setPersons(persons.concat(returnedNote))
+        setMessage(`Added ${newPersonObject.name}`)
+        setTimeout(() => {
+          setMessage(null)
+        }, 5000)
         setNewName('')
         setNewNumber('')
       })
+      
+
   }
 
 }
 
 
 const deleteEntry = (person) => {
-  console.log(`Delete button for id: ${person.id} clicked`)
+  //console.log(`Delete button for id: ${person.id} clicked`)
   if(window.confirm(`Delete ${person.name} ?`))
   { 
-    phoneService.remove(person.id)
-    const newPersons= persons.filter(people => people.id !== person.id)
-    setPersons(newPersons)
+    phoneService
+      .remove(person.id)
+      .catch(error => {
+        setState('error')
+        setMessage(`Information of ${person.name} has already been removed from server`)
+        setTimeout(() => {
+          setMessage(null)
+        }, 5000)
+      })
+      setPersons(persons.filter(people => people.id !== person.id))
+    //const newPersons= persons.filter(people => people.id !== person.id)
+    //setPersons(newPersons)
   }
 }
 
@@ -92,6 +117,7 @@ const handleFitler = (event) => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notifications message={message} state={state}/>
       <div>Filter shown with <input onChange ={handleFitler} /></div>
       <h2>Add a new</h2>
       <form onSubmit={handleFormSubmit}>
