@@ -1,19 +1,20 @@
-const express = require('express');
-const morgan = require('morgan');
-
-
-const app = express()
+require('dotenv').config()
+const express = require('express')
+const morgan = require('morgan')
+const cors = require('cors')
+const Phonebook = require('./models/phonebook')
 
 morgan.token('data', (request, response) => {
-  //const body = request.body
-  //const dataString = `{"name": ${body.name}, "number": ${body.number}}`
-  //console.log(`Inside morgan : ${body.name}, ${body.number}`)
   return JSON.stringify({"name": request.body.name, "number": request.body.number})
 })
 
+const app = express()
+app.use(cors())
+app.use(express.static('build'))
 app.use(express.json())
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :data '))
 
+/*
 let persons = [
     { 
       "id": 1,
@@ -41,20 +42,34 @@ app.get('/', (request, response) => {
   response.send('<h1>Hello World!</h1>')
 })
 
+*/ 
 
 app.get('/api/persons', (request, response) => {
-  response.json(persons)
+  Phonebook.find({}).then(result => {
+    response.json(result)
+    
+  })
+  
 })
 
 app.get('/info', (request, response) => {
-  const numContacts = (persons.map(person => person.id)).length
+  Phonebook.find({}).then(result => {
+    const numContacts = (result.map(person => person.id)).length
   const todayDate = Date(Date.now())
   const dateString = todayDate.toString()
   const responseString = `Phonebook has info for ${numContacts} people. <br> ${dateString}`
   response.send(responseString)
+  })
+  
 })
 
+/*
 app.get('/api/persons/:id', (request, response) => {
+  Phonebook.find({id : Number(request.params.id)}).then(result => {
+    result.forEach(person => response.json(person))
+    mongoose.connection.close()
+
+  })
   const id = Number(request.params.id)
   const person = persons.find(person => person.id === id)
   
@@ -72,16 +87,25 @@ app.delete('/api/persons/:id', (request, response) => {
 
   response.status(204).end()
 })
-
 const generateId = () => {
-  const maxId = persons.length > 0 ? Math.max(...persons.map(n=> n.id)) : 0
-  return maxId + 1
+  console.log('Inside Generate ID')
+  Phonebook.find({}).then (result => {
+    console.log('After phonebook.find, the results are ', result.length)
+    maxId = result.length
+    console.log('Next id should be ',maxId)
+    return maxId + 1
+  }) 
+  
 }
+*/
+
+
 
 app.post('/api/persons', (request, response) => {
-const body = request.body
-const dupName = persons.filter(person => person.name === body.name)
+  const body = request.body
+  //const dupName = persons.filter(person => person.name === body.name)
 
+  /*
 
 if(!body.name || !body.number)
 {
@@ -92,23 +116,21 @@ if(dupName.length > 0)
 {
   return response.status(400).json({error: 'name must be unique'})
 }
+*/
 
-
-console.log(body.content)
-const person = {
+const person = new Phonebook({
   name : body.name,
   number: body.number,
-  id: generateId()
-}
+})
 
-persons = persons.concat(person)
-  
-
-response.json(person)
+person.save().then(savedNote => {
+  console.log('Saved note', savedNote)
+  response.json(savedNote)
+})
 
 })
 
-const PORT = 3001
+const PORT = process.env.PORT
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })

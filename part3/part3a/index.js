@@ -1,6 +1,8 @@
+require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
+const Note = require('./models/note')
 
 const app = express()
 app.use(express.static('build'))
@@ -47,7 +49,10 @@ app.get('/', (request, response) => {
 })
 
 app.get('/api/notes', (request, response) => {
-    response.json(notes)
+    //response.json(notes)
+    Note.find({}).then(notes => {
+        response.json(notes)
+    })
 })
 
 app.get('/api/notes/:id', (request, response) => {
@@ -64,10 +69,14 @@ app.get('/api/notes/:id', (request, response) => {
 })
 
 app.delete('/api/notes/:id', (request, response) => {
-    const id = Number(request.params.id)
-    notes = notes.filter(note => note.id !== id)
+    //const id = Number(request.params.id)
+    //notes = notes.filter(note => note.id !== id)
 
-    response.status(204).end()
+    //response.status(204).end()
+
+    Note.findById(request.params.id).then(note => {
+        response.json(note)
+    })
 })
 
 app.post('/api/notes', (request, response) => {
@@ -80,22 +89,21 @@ app.post('/api/notes', (request, response) => {
         })
     }
 
-    const note = {
+
+    const note = new Note({
         content: body.content,
         important: body.important || false,
-        id: generateId(),
-    }
-    notes = notes.concat(note)
+    })
 
-    response.json(note)
-
-app.use(unknownEndpoint)
+    note.save().then(savedNote => {
+        response.json(savedNote)
+    })
 
 
 
 })
 
-const PORT = process.env.PORT || 3001
-
-app.listen(PORT)
+const PORT = process.env.PORT
+app.listen(PORT, () => {
 console.log(`Server running on port ${PORT}`)
+})
